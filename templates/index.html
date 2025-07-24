@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>校园综合管理系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .out{
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            margin-top: 30px;
+            animation: fadeInDown 1s ease-out;
+        }
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+
+        .main {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: stretch;
+        }
+        .left_part {
+            flex: 0 0 60%;
+            max-width: 60%;
+            min-width: 320px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: fadeInLeft 1s ease-out;
+            box-sizing: border-box;
+        }
+        .left_part h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .menu_list {
+            list-style: none;
+        }
+        .menu_item {
+            background: linear-gradient(135deg, #f8f9ff, #e8edff);
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        .menu_item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .menu_link {
+            display: block;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .menu_item h3 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        .menu_item p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .right_part {
+            flex: 1 1 40%;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            height: 100%;
+        }
+
+        .ifo_part {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: fadeInRight 1s ease-out;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .ifo_part h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .static_grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .static_card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        .static_card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .static_card p {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .function_card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+            flex-grow: 1;
+        }
+         @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+         @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="out">
+        <div class="header">
+            <h1>校园综合管理平台</h1>
+            <p>数据驱动 · 智慧校园</p>
+        </div>
+    <div class="main">  
+        <div class="left_part">
+                <h2>功能列表</h2>
+                <ul class="menu_list">
+                    <li class="menu_item" onclick="window.location.href='/student'">
+                        <div class="menu_link">
+                            <h3>学生信息管理</h3>
+                            <p>学生档案、分布、动态统计</p>
+                        </div>
+                    </li>
+                    <li class="menu_item" onclick="window.location.href='/course'">
+                        <div class="menu_link">
+                            <h3>课程信息管理</h3>
+                            <p>课程资源、开课计划、教师分配</p>
+                        </div>
+                    </li>
+                    <li class="menu_item" onclick="window.location.href='/grade'">
+                        <div class="menu_link">
+                            <h3>成绩信息管理</h3>
+                            <p>成绩录入、查询、报告生成</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+        <div class="right_part">
+            <div class="ifo_part">
+                <h2>信息概览</h2>
+                <div class="static_grid">
+                    <div class="static_card">
+                        <h3 id="student_total">加载中...</h3>
+                        <p>在校学生</p>
+                    </div>
+                    <div class="static_card">
+                        <h3 id="major_total">加载中...</h3>
+                        <p>设立专业</p>
+                    </div>
+                    <div class="static_card">
+                        <h3 id="course_total">加载中...</h3>
+                        <p>开设课程</p>
+                    </div>
+                    <div class="static_card">
+                        <h3 id="teacher_total">加载中...</h3>
+                        <p>教师总数</p>
+                    </div>
+                </div>
+
+                <div class="function_card">
+                    <h2>快速入口</h2>
+                    <p style="text-align: center; margin-top: 15px; color: #666;">
+                        选择左侧功能模块开始使用系统
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>  
+            
+</body>
+</html>
+
+<script>
+window.onload = function() {
+    fetch('/api/overview')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('student_total').innerText = data.student_total;
+            document.getElementById('major_total').innerText = data.major_total;
+            document.getElementById('course_total').innerText = data.course_total;
+            document.getElementById('teacher_total').innerText = data.teacher_total;
+        })
+}
+</script>

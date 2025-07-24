@@ -1,0 +1,847 @@
+{% extends 'base.html' %}
+{% block title %}成绩可视化{% endblock %}
+{% block head_extra %}
+    <style>
+        .background_part {
+            background: #f5f5f5;
+            border-radius: 20px; 
+            padding: 30px; 
+            margin: 20px auto; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); 
+        }
+        
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1.5fr; 
+            grid-template-rows: auto 1fr; 
+            gap: 20px; 
+            min-height: 80vh;
+            grid-template-areas: 
+                "left middle right"
+                "left middle-bottom right";
+        }
+
+        /* 左侧部分 */
+        .left_part {
+            grid-area: left;
+            background: white;
+            border-radius: 16px;
+            padding: 20px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.6s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .left_part::before, .right_part::before, .m_bottom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px 16px 0 0;
+        }
+
+        /* 中间部分 */
+        .middle_part {
+            display: contents; /* 让子元素直接参与grid布局 */
+        }
+
+        /* 中间上部 */
+        .m_top {
+            grid-area: middle;
+            background: transparent;
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: none;
+            backdrop-filter: none;
+            border: none;
+            animation: fadeInUp 0.7s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%; /* 确保占满grid区域 */
+        }
+
+        .dropdown_section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            width: 100%; 
+        }
+
+        .dropdown_section select {
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            color: #333;
+            padding: 12px 45px 12px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background: white url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") no-repeat right 12px center;
+            background-size: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%; 
+            box-sizing: border-box; 
+        }                                                           
+
+        /* 中间下部 */
+        .m_bottom {
+            grid-area: middle-bottom;
+            background: white;
+            border-radius: 15px;
+            padding: 20px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 右侧部分 */
+        .right_part {
+            grid-area: right;
+            background: white;
+            border-radius: 16px;
+            padding: 20px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.9s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "middle"
+                    "middle-bottom"
+                    "left"
+                    "right";
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .dropdown_section {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .dropdown_section select {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .left_part, .right_part, .m_top, .m_bottom {
+                padding: 15px;
+            }
+
+            .boxplot, .avg_plot {
+                height: 250px;
+            }
+
+            .m_info_part {
+                min-height: 250px;
+            }
+        }
+
+        .dropdown_section select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .dropdown_section select:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 移除m_top的悬浮效果 */
+        .left_part:hover, .right_part:hover, .m_bottom:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        .m_top:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .boxplot, .avg_plot {
+            margin-top: 13%;
+            height: 350px;
+            min-height: 250px;
+        }
+        #grade_boxplot, #avg_plot {
+            width: 105%;
+            height: 100%;
+        }
+
+        /* 表格容器样式 */
+        .info_table {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 1.0s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info_table::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .info_table h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* 表格容器高度限制和滚动 */
+        .info_table {
+            max-height: 400px;
+            overflow: hidden;
+        }
+
+        /* 表格滚动容器 */
+        .info_table .custom-table {
+            max-height: 350px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        /* 确保表头固定 */
+        .info_table .custom-table thead {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 10;
+        }
+
+        /* 表格行悬停效果 */
+        .info_table .custom-table tbody tr:hover {
+            background-color: #f0f8ff;
+            transition: background-color 0.2s ease;
+        }
+
+        /* 自定义滚动条样式 */
+        .info_table .custom-table::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .info_table .custom-table::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .info_table .custom-table::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .info_table .custom-table::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .info_table {
+                padding: 15px;
+                margin-top: 15px;
+                max-height: 350px;
+            }
+            
+            .info_table .custom-table {
+                max-height: 280px;
+            }
+        }
+        #grade_table {
+            width: 100%;
+            height: 100%;
+        }
+        #grade_table .table-scroll {
+            width: 100%;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        #grade_table .custom-table {
+            width: 100%;
+            min-width: unset;
+        }
+
+        .table_controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .table_controls input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .table_controls input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .table_controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .search_btn, .repeat_btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .search_btn:hover, .repeat_btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .add_window {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .add_window_content {
+            background-color: white;
+            margin: 4% auto;
+            padding: 24px 32px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            min-width: 280px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .form_group {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .form_group label {
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .form_group input,
+        .form_group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+            background: #fafbfc;
+        }
+
+        .form_group input:focus,
+        .form_group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.08);
+        }
+
+        .add_window_footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 18px;
+            padding: 0;
+        }
+
+        .add_window_btn {
+            min-width: 64px;
+            padding: 8px 18px;
+            border-radius: 6px;
+            border: none;
+            background: #667eea;
+            color: #fff;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .add_window_btn[type="button"] {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+        .add_window_btn:hover {
+            background: #5a6fd8;
+        }
+        
+
+    </style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="out">
+        <div class="header">
+            <h1>成绩可视化</h1>
+        </div>
+        <div class="background_part">
+            <div class="main">
+                <div class="left_part">
+                    <h2>成绩箱线图</h2>
+                    <div class="boxplot">
+                        <div id="grade_boxplot"></div>
+                    </div>
+                </div>
+
+                <div class="middle_part">
+                    <div class="m_top">
+                        <div class="dropdown_section">
+                            <select id="course_select"></select>
+                            <select id="major_select"></select>
+                        </div>
+                    </div>
+
+                    <div class="m_bottom">
+                        <div class="m_info_part">
+                            <div id="m_info"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right_part">
+                    <h2>平均成绩</h2>
+                    <div class="avg_plot">
+                        <div id="avg_plot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info_table">
+            <h2>成绩详情表格</h2>
+            <div class="table_controls">
+                <input type="text" id="search_input" class="search_input" placeholder="请输入学生学号或姓名搜索...">
+                <button class="search_btn" onclick="searchGrades()">搜索</button>
+                <button class="add_btn" onclick="showAdd()">添加/修改成绩</button>
+                <button class="repeat_btn" onclick="loadGradeTable()">刷新</button>
+            </div>
+            <div class="table_container">
+                <div id="grade_table"></div>
+            </div>
+        </div>
+        
+            
+        
+        <div id="add_window" class="add_window" style="display:none;">
+            <div class="add_window_content">
+                <div class="add_window_header">
+                    <h2>添加/修改成绩</h2>
+                </div>
+                <form id="add_form">
+                    <div class="form_group">
+                        <label for="student_id_input">学号:</label>
+                        <input type="text" id="student_id_input" required placeholder="请输入学号">
+                    </div>
+                    <div class="form_group">
+                        <label for="student_name_input">姓名:</label>
+                        <input type="text" id="student_name_input" required placeholder="请输入姓名">
+                    </div>
+                    <div class="form_group">
+                        <label for="major_select_modal">专业:</label>
+                        <select id="major_select_modal" required>
+                            <option value="">请选择专业</option>
+                        </select>
+                    </div>
+                    <div class="form_group">
+                        <label for="course_select_modal">课程:</label>
+                        <select id="course_select_modal" required>
+                            <option value="">请选择课程</option>
+                        </select>
+                    </div>
+                    <div class="form_group">
+                        <label for="score_input">成绩:</label>
+                        <input type="number" id="score_input" min="0" max="100" step="0.1" required placeholder="请输入成绩">
+                    </div>
+                    <div class="add_window_footer">
+                        <button type="button" class="add_window_btn">取消</button>
+                        <button type="submit" class="add_window_btn">添加</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="student_all_grade" class="student_all_grade" style="display:none;">
+            <div id="student_all_grade_content">
+                <div id="student_all_grade_info">
+                    <div id="student_all_grade_info_table"></div>
+                </div>
+                <div id="student_all_grade_chart">
+                    <div id="student_all_grade_chart_chart"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block body_extra_scripts %}
+{{ super() }}
+    <script>
+
+        window.onload = function() {
+            loadSelectOptions('/api/major_select', 'major_select', '全部专业');
+            loadSelectOptions('/api/course_select', 'course_select', '全部课程');
+
+            loadGradeData();
+
+            // 下拉框监听器
+            document.getElementById('major_select').addEventListener('change', loadGradeData);
+            document.getElementById('course_select').addEventListener('change', loadGradeData);
+        };
+
+        // 加载成绩数据的主函数
+        function loadGradeData() {
+            const majorSelect = document.getElementById('major_select');
+            const courseSelect = document.getElementById('course_select');
+            
+            const selectedMajor = majorSelect.value;
+            const selectedCourse = courseSelect.value;
+            
+            // 构建API参数
+            const item = {};
+            if (selectedMajor !== 'all') item.major = selectedMajor;
+            if (selectedCourse !== 'all') item.course = selectedCourse;
+            
+            // 统计数据加载
+            loadBoxplot(item);
+            loadAvgChart(item);
+            loadGradeInfo(item);
+            loadGradeTable(item);
+        }
+
+        // 箱线图
+        function loadBoxplot(item) {
+            let url = '/api/grade_boxplot';
+            const query_item = new URLSearchParams(item);
+            if (query_item.toString()) url += '?' + query_item.toString();
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const chartDom = document.getElementById('grade_boxplot');
+                    const myChart = echarts.init(chartDom);
+
+                    const boxplotData = echarts.dataTool.prepareBoxplotData(data.rawData);
+
+                    const option = {
+                        title: {
+                            text: getBoxplotTitle(item),
+                            left: 'center',
+                            textStyle: {
+                                color: '#333',
+                                fontSize: 16
+                            }
+                        },
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: function(item) {
+                                var values = item.data.value || item.data;
+                                if (Array.isArray(values) && values.length >= 5) {
+                                    return [
+                                        item.name + ': ',
+                                        '最大值: ' + values[5],
+                                        '上四分位: ' + values[4],
+                                        '中位数: ' + values[3],
+                                        '下四分位: ' + values[2],
+                                        '最小值: ' + values[1]
+                                    ].join('<br/>');
+                                } else if (Array.isArray(values) && values.length === 2) {
+                                    return item.name + ': ' + values[1];
+                                } else if (typeof values === 'number') {
+                                    return item.name + ': ' + values;
+                                } else {
+                                    return item.name + ': ' + JSON.stringify(values);
+                                }
+                            }
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: data.categories,
+                            nameTextStyle: {
+                                fontSize: 14,
+                                color: '#333'
+                            }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            name: '成绩',
+                            nameLocation: 'middle',
+                            nameGap: 30,
+                            nameTextStyle: {
+                                fontSize: 14,
+                                color: '#333'
+                            }
+                        },
+                        series: [
+                            {
+                                type: 'boxplot',
+                                data: boxplotData.boxData,
+                                itemStyle: {
+                                    color: '#667eea',
+                                    borderColor: '#764ba2'
+                                }
+                            },
+                        ]
+                    };
+
+                    myChart.setOption(option);
+                    window.addEventListener('resize', function() { myChart.resize(); });
+                })
+                .catch(error => console.error('加载箱线图失败:', error));
+        }
+
+        // 加载平均成绩图
+        function loadAvgChart(params) {
+            let url = '/api/grade_avg';
+            const query_item = new URLSearchParams(params);
+            if (query_item.toString()) url += '?' + query_item.toString();
+            
+            loadBarChart('avg_plot', url, getAvgChartTitle(params), getAvgChartXAxis(params), '平均成绩', 'none', {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [{ offset: 0, color: '#667eea' }, { offset: 1, color: '#764ba2' }]
+            });
+        }
+
+        // 成绩信息统计
+        function loadGradeInfo(params) {
+            let url = '/api/grade_info';
+            const queryParams = new URLSearchParams(params);
+            const container = document.getElementById('m_info');
+            if (queryParams.toString()) url += '?' + queryParams.toString();
+
+            // 饼图
+            container.innerHTML = `<div id="grade_pie" style="width:80%;height:300px;"></div>`;
+            loadPieChart(
+                'grade_pie',
+                url,
+                '成绩等级分布',
+                ['#667eea', '#764ba2', '#54a4da', '#409EFF']
+            );
+        }
+        
+        // 成绩表格
+        function loadGradeTable(params = {}) {
+            let url = '/api/grade_table';
+            const queryParams = new URLSearchParams(params);
+            if (queryParams.toString()) url += '?' + queryParams.toString();
+
+            render_Table(url, 'grade_table', function(row) {
+                return `<button onclick="delete_grade('${row['学号']}', '${row['课程']}')" style="color:white;background:#e74c3c;border:none;border-radius:5px;padding:5px 12px;cursor:pointer;">删除</button>`;
+            });
+        }
+
+        function delete_grade(student_id, course_name) {
+            if (!confirm('确定要删除该学生该课程的成绩吗？')) return;
+            fetch('/api/delete_grade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student_id, course_name })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.message && data.message.includes('成功')) {
+                    alert('删除成功');
+                    loadGradeTable(); // 刷新
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            })
+            .catch(() => alert('删除失败，请重试'));
+        }
+
+        // 箱线图标题（不同选择不同显示）
+        function getBoxplotTitle(params) {
+            if (params.major && params.course) {
+                return `${params.major} - ${params.course} 成绩分布`;
+            } else if (params.major) {
+                return `${params.major} 各课程成绩分布`;
+            } else if (params.course) {
+                return `${params.course} 各专业成绩分布`;
+            } else {
+                return '全部成绩分布';
+            }
+        }
+
+        // 获取平均成绩图标题
+        function getAvgChartTitle(params) {
+            if (params.major && params.course) {
+                return `${params.major} - ${params.course} 平均成绩`;
+            } else if (params.major) {
+                return `${params.major} 各课程平均成绩`;
+            } else if (params.course) {
+                return `${params.course} 各专业平均成绩`;
+            } else {
+                return '整体平均成绩';
+            }
+        }
+
+        // 获取平均成绩图X轴标签
+        function getAvgChartXAxis(params) {
+            if (params.major && !params.course) {
+                return '课程';
+            } else if (params.course && !params.major) {
+                return '专业';
+            } else {
+                return '类别';
+            }
+        }
+
+        // 弹窗
+        function showAdd() {
+            // 下拉框
+            loadSelectOptions('/api/course_select', 'course_select_modal', '请选择课程');
+            loadSelectOptions('/api/major_select', 'major_select_modal', '请选择专业');
+            // 弹窗
+            document.getElementById('add_window').style.display = 'flex';
+
+            // 取消按钮
+            document.querySelector('#add_form .add_window_btn[type="button"]').onclick = function() {
+                document.getElementById('add_window').style.display = 'none';
+                document.getElementById('add_form').reset();
+            };
+
+            // 提交表单
+            document.getElementById('add_form').onsubmit = function(e) {
+                e.preventDefault();
+                const student_id = document.getElementById('student_id_input').value;
+                const student_name = document.getElementById('student_name_input').value;
+                const major = document.getElementById('major_select_modal').value;
+                const course = document.getElementById('course_select_modal').value;
+                const score = document.getElementById('score_input').value;
+
+                if (!student_id || !student_name || !major || !course || !score) {
+                    alert('请填写所有信息');
+                    return;
+                }
+
+                fetch('/api/add_grade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id, student_name, major, course, score })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === "Grade added successfully" || data.message === "Grade updated successfully") {
+                        alert(data.message === "Grade updated successfully" ? '成绩已覆盖' : '添加成功');
+                        document.getElementById('add_window').style.display = 'none';
+                        document.getElementById('add_form').reset();
+                        loadGradeData();
+                    } else {
+                        alert('添加失败');
+                    }
+                }).catch(()=>{
+                    alert('网络错误');
+                });
+            };
+        }
+
+        document.getElementById('student_id_input').addEventListener('blur', function() {
+            const studentId = this.value.trim();
+            if (!studentId) return;
+            fetch(`/api/get_student_by_id?student_id=${encodeURIComponent(studentId)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.name) {
+                        document.getElementById('student_name_input').value = data.name;
+                        document.getElementById('major_select_modal').value = data.major;
+                    } else {
+                        document.getElementById('student_name_input').value = '';
+                        document.getElementById('major_select_modal').value = '';
+                        alert('未找到该学号对应的学生');
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('student_name_input').value = '';
+                    document.getElementById('major_select_modal').value = '';
+                    alert('查询学生信息失败');
+                });
+        });
+    
+        // 搜索学生成绩
+        function searchGrades() {
+            const input = document.getElementById('search_input').value.trim();
+            if (!input) {
+                alert('请输入学号或姓名');
+                return;
+            }
+            let params = {};
+            if (/^\d+$/.test(input)) {
+                params.student_id = input;
+            } else {
+                params.student_name = input;
+            }
+            loadGradeTable(params);
+        }
+   
+    </script>
+{% endblock %}
